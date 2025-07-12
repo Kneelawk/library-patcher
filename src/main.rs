@@ -15,6 +15,9 @@ struct Args {
     /// The library files to exclude (globs accepted)
     #[arg(short, long)]
     exclude: Vec<String>,
+    /// Additional paths to search for library files
+    #[arg(short, long)]
+    search: Vec<PathBuf>,
     /// Only print names of files to be copied without actually copying them
     #[arg(short, long)]
     dry_run: bool,
@@ -38,7 +41,12 @@ fn main() -> anyhow::Result<()> {
             glob::glob(target).with_context(|| format!("Parsing target glob: {}", target))?
         {
             if let Ok(file) = glob_result {
-                let result = lddtree::DependencyAnalyzer::new(root.clone())
+                let result = args
+                    .search
+                    .iter()
+                    .fold(lddtree::DependencyAnalyzer::new(root.clone()), |a, p| {
+                        a.add_library_path(p.clone())
+                    })
                     .analyze(&file)
                     .with_context(|| format!("Analying: {:?}", &file))?;
                 for (_name, library) in result.libraries {
