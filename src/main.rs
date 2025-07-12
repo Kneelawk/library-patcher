@@ -1,3 +1,5 @@
+mod lddtree;
+
 use anyhow::Context;
 use clap::Parser;
 use glob::Pattern;
@@ -28,6 +30,14 @@ fn main() -> anyhow::Result<()> {
 
     let mut to_copy = BTreeSet::new();
     let root = PathBuf::from("/");
+    let analyzer = args
+        .search
+        .iter()
+        .fold(lddtree::DependencyAnalyzer::new(root.clone()), |a, p| {
+            a.add_library_path(p.clone())
+        })
+        .exclude_libraries(args.exclude.clone())
+        .context("Parsing exclude globs")?;
 
     let excludes = args
         .exclude
@@ -41,12 +51,8 @@ fn main() -> anyhow::Result<()> {
             glob::glob(target).with_context(|| format!("Parsing target glob: {}", target))?
         {
             if let Ok(file) = glob_result {
-                let result = args
-                    .search
-                    .iter()
-                    .fold(lddtree::DependencyAnalyzer::new(root.clone()), |a, p| {
-                        a.add_library_path(p.clone())
-                    })
+                let result = analyzer
+                    .clone()
                     .analyze(&file)
                     .with_context(|| format!("Analying: {:?}", &file))?;
                 for (_name, library) in result.libraries {
