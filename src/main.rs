@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 struct Args {
     /// The path that library files are copied to
     #[arg(short, long)]
-    to: PathBuf,
+    output: PathBuf,
     /// The library files to copy (globs accepted)
     #[arg(short, long)]
     target: Vec<String>,
@@ -53,7 +53,7 @@ fn main() -> anyhow::Result<()> {
     println!("Copying files:");
     for file in to_copy {
         if let Some(file_name) = file.file_name() {
-            let output = args.to.join(file_name);
+            let output = args.output.join(file_name);
             println!("  {:?} to {:?}", &file, &output);
             if !args.dry_run {
                 std::fs::copy(&file, &output)
